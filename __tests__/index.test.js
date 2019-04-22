@@ -25,7 +25,7 @@ describe('withJSONHandler', () => {
 
     it('resolves with an object containing body', async () => {
       const result = await fn(event);
-      expect(result.body).toBe(JSON.stringify(event.queryStringParameters));
+      expect(JSON.parse(result.body)).toEqual(event.queryStringParameters);
     });
 
     it('resolves with an object containing statusCode of 200', async () => {
@@ -79,6 +79,23 @@ describe('withJSONHandler', () => {
     it('resolves with an object containing the cache-control header', async () => {
       const result = await fn(event);
       expect(result.headers['cache-control']).toBe('max-age=1000');
+    });
+  });
+
+  describe('for a GET with an async function', () => {
+    const event = {
+      httpMethod: 'GET',
+      headers: {},
+      queryStringParameters: { name: 'donavon' },
+      path: '/foo/bar',
+    };
+
+    const myFn = async props => props;
+    const fn = withJSONHandler(myFn);
+
+    it('resolves with an object containing body', async () => {
+      const result = await fn(event);
+      expect(JSON.parse(result.body)).toEqual(event.queryStringParameters);
     });
   });
 

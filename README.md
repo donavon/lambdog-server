@@ -1,5 +1,3 @@
-#@lambdog/server
-
 <div align="center">
 <img
   height="200"
@@ -35,7 +33,9 @@ but first, you must `JSON.stringify` it. Then you call the callback function wit
 
 Whew! That'a a lot of "plumbing" for a simple "Hello World" function. And you can barely even
 see your core function.
-(And exactly what is `queryStringParameters` anyway?)
+Whatever happened to the design principle talking about the
+[separation of concerns](https://en.wikipedia.org/wiki/Separation_of_concerns)?
+And exactly what is `queryStringParameters` anyway? ¯\\_(ツ)_/¯
 
 ```js
 export function handler(event, context, callback) {
@@ -51,7 +51,7 @@ export function handler(event, context, callback) {
 ### Enter Lambdog
 
 With Lambdog, we can take our simple `hello` function from above, wrap it and export it.
-The plumbing is hidden away. You don't have to know a thing about HTTP.
+The plumbing is hidden away. You don't have to concern yourself with HTTP, status codes, headers, or caching.
 
 ```js
 import { withJSONHandler } from '@lambdog/server';
@@ -67,11 +67,11 @@ You would call this from your client by doing a GET to `/hello?name=Joe`.
 
 Oh, and there are a few other benefits that you get out of the box—for free.
 
-* Your return value if automatically `JSON.stringify`ed and added to `body`.
+* Your return value is automatically `JSON.stringify`'ed and added to `body`.
 
 * Automatic `etag`/`if-none-match` generation/matching to return a 304 status code means fewer bits pass over the wire.
 
-* Optional setting for "pure" functions that allow you to set "max-age" caching.
+* If your function is "pure" (i.e. has no side effects), there is an optional setting that allows you to set "max-age" caching.
 
 * Automatic `try`/`catch` to produce 500 server errors.
 
@@ -124,11 +124,15 @@ The configuration object has the following options.
 
 ## Your function
 
+### Parameters
+
 Your function will be called with two arguments. The first is a consolidated `props` object. It is built from query parameters, URL pattern matching (i.e. /hello/:name), and POST data, in that order.
 
 The second argument is the original `event` object passed to the `handler`.
 Use this as your "escape hatch" in case your function needs to know more about
 how it was called. For example, you can check for a particular header value.
+
+### Throwing
 
 If you throw an error, Lambdog will, by default (unless you set `errorCallback` in config), format a status code of 500
 with the error message as the body.
@@ -136,7 +140,12 @@ with the error message as the body.
 If you throw an object, Lambdog will return that object "as-it".
 This is your response escape hatch.
 
-Otherwise, whatever you return from your function will be JSON stringified and
+### Return value
+
+Your function can return a value directly, or it can be an `async` function
+what resolves to a value.
+
+The results from your function will be JSON stringified and
 placed in the body.
 An `etag` hash of the body will also be included in the header.
 
