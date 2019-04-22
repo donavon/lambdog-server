@@ -1,0 +1,5 @@
+{
+  "extends": "amex/test",
+  "rules": {
+  } 
+}
