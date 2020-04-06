@@ -1,7 +1,11 @@
 {
-  "extends": "amex",
+  "extends": "airbnb-base",
   "rules": {
     "consistent-return": 0,
-    "import/prefer-default-export": 0
+    "import/prefer-default-export": 0,
+    "indent": 0,
+    "object-curly-newline": "off",
+    "operator-linebreak": 0,
+    "comma-dangle": 0
   }
 }
