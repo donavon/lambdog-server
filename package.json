@@ -31,14 +31,15 @@
   ],
   "author": "Donavon West <github@donavon.com> (https://github.com/donavon)",
   "devDependencies": {
-    "@babel/cli": "^7.4.3",
-    "@babel/core": "^7.2.2",
-    "@babel/preset-env": "^7.2.3",
-    "babel-jest": "^24.7.1",
-    "eslint": "^5.10.0",
-    "eslint-config-amex": "^9.0.0",
-    "jest": "^24.7.1",
-    "rimraf": "^2.6.2"
+    "@babel/cli": "^7.8.4",
+    "@babel/core": "^7.9.0",
+    "@babel/preset-env": "^7.9.0",
+    "babel-jest": "^25.2.6",
+    "eslint": "^6.8.0",
+    "eslint-config-airbnb-base": "^14.1.0",
+    "eslint-plugin-import": "^2.20.2",
+    "jest": "^25.2.7",
+    "rimraf": "^3.0.2"
   },
   "jest": {
     "coverageThreshold": {
