@@ -6,7 +6,7 @@
   },
   "version": "0.1.0-alpha.1",
   "description": "It's part lamb. It's part dog. It's lambdog.",
-  "module": "module/indedx.js",
+  "module": "module/index.js",
   "source": "src/index.js",
   "license": "MIT",
   "repository": {
