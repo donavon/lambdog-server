@@ -15,7 +15,7 @@ describe('withJSONHandler', () => {
       path: '/foo',
     };
 
-    const myFn = props => props;
+    const myFn = (props) => props;
     const fn = withJSONHandler(myFn);
 
     it('when called returns a Promise', async () => {
@@ -68,18 +68,21 @@ describe('withJSONHandler', () => {
       httpMethod: 'GET',
       headers: {},
       queryStringParameters: { name: 'donavon' },
-      path: '/foo/bar',
+      path: '/.netlify/functions/function-name/x/bar',
     };
 
-    const myFn = props => props;
+    const myFn = (props) => props;
     const fn = withJSONHandler(myFn, {
-      pathToProps: 'foo/:name2/:namex',
+      pathToProps: 'x/:name2/:namex',
       maxAge: 1000,
     });
 
     it('is passed a combined props object', async () => {
       const result = await fn(event);
-      expect(JSON.parse(result.body)).toEqual({ name: 'donavon', name2: 'bar' });
+      expect(JSON.parse(result.body)).toEqual({
+        name: 'donavon',
+        name2: 'bar',
+      });
     });
 
     it('resolves with an object containing the cache-control header', async () => {
@@ -96,7 +99,7 @@ describe('withJSONHandler', () => {
       path: '/foo/bar',
     };
 
-    const myFn = async props => props;
+    const myFn = async (props) => props;
     const fn = withJSONHandler(myFn);
 
     it('resolves with an object containing body', async () => {
@@ -112,19 +115,49 @@ describe('withJSONHandler', () => {
         'content-type': 'application/json',
       },
       queryStringParameters: { name: 'donavon' },
-      path: '/foo/bar',
+      path: '/.netlify/functions/function-name/bar',
       body: JSON.stringify({ name3: 'Jill' }),
     };
 
-    const myFn = props => props;
+    const myFn = (props) => props;
     const fn = withJSONHandler(myFn, {
-      pathToProps: 'foo/:name2',
+      pathToProps: ':name2',
       maxAge: 1000,
     });
 
-    it('is passed a combined props object', async () => {
+    it('is passed a combined props object when JSON encoded', async () => {
       const result = await fn(event);
-      expect(result.body).toBe(JSON.stringify({ name: 'donavon', name2: 'bar', name3: 'Jill' }));
+      expect(result.body).toBe(
+        JSON.stringify({ name: 'donavon', name2: 'bar', name3: 'Jill' })
+      );
+    });
+
+    it('is passed a combined props object URL encoded', async () => {
+      const event = {
+        httpMethod: 'POST',
+        headers: {
+          'content-type': 'application/x-www-form-urlencoded',
+        },
+        queryStringParameters: { name: 'donavon' },
+        path: '/.netlify/functions/function-name/bar',
+        body: 'name3=Jill&name4=Bob%20Smith',
+      };
+
+      const myFn = (props) => props;
+      const fn = withJSONHandler(myFn, {
+        pathToProps: ':name2',
+        maxAge: 1000,
+      });
+
+      const result = await fn(event);
+      expect(result.body).toBe(
+        JSON.stringify({
+          name: 'donavon',
+          name2: 'bar',
+          name3: 'Jill',
+          name4: 'Bob Smith',
+        })
+      );
     });
 
     it('resolves with an object containing the cache-control header', async () => {
