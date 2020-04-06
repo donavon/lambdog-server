@@ -12,7 +12,7 @@ const defaultErrorCallback = error => ({
 });
 
 const mapPathToProps = (pathToProps, path) => {
-  const pathSegments = path.substr(1).split('/');
+  const pathSegments = path.substr(1).split('/').slice(3); // skip .netlify/functions/{function-name}
   const mapSegments = pathToProps.split('/');
   const result = {};
   mapSegments.forEach((segment, i) => {
