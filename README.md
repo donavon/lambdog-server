@@ -21,7 +21,7 @@ Let's look at a quick example. Say you have a "Hello World" function that you wo
 like to run on the server. It should be as simple as this.
 
 ```js
-const hello = ({name = 'World'}) => `Hello, ${name}!`;
+const hello = ({ name = 'World' }) => `Hello, ${name}!`;
 ```
 
 I say "should" because that's not all you have to do. To make it a Lambda function,
@@ -56,7 +56,7 @@ The plumbing is hidden away. You don't have to concern yourself with HTTP, statu
 ```js
 import { withJSONHandler } from '@lambdog/server';
 
-const hello = ({name = 'World'}) => `Hello, ${name}!`;
+const hello = ({ name = 'World' }) => `Hello, ${name}!`;
 
 export const handler = withJSONHandler(hello);
 ```
@@ -67,15 +67,15 @@ You would call this from your client by doing a GET to `/hello?name=Joe`.
 
 Oh, and there are a few other benefits that you get out of the box—for free.
 
-* Your return value is automatically `JSON.stringify`'ed and added to `body`.
+- Your return value is automatically `JSON.stringify`'ed and added to `body`.
 
-* Automatic `etag`/`if-none-match` generation/matching to return a 304 status code means fewer bits pass over the wire.
+- Automatic `etag`/`if-none-match` generation/matching to return a 304 status code means fewer bits pass over the wire.
 
-* If your function is "pure" (i.e. has no side effects), there is an optional setting that allows you to set "max-age" caching.
+- If your function is "pure" (i.e. has no side effects), there is an optional setting that allows you to set "max-age" caching.
 
-* Automatic `try`/`catch` to produce 500 server errors.
+- Automatic `try`/`catch` to produce 500 server errors.
 
-* Support for `props` based on query parameters, URL pattern matching (i.e. /hello/:name), or POST data.
+- Support for `props` based on query parameters, URL pattern matching (i.e. /.netlify/functions/hello/:name), or POST data.
 
 ## Installation
 
@@ -103,10 +103,10 @@ export const handler = withJSONHandler(function, config);
 
 Here are the parameters that you can use.
 
-| Parameter   | Description                                                  |
-| :---------- | :------------------------------------------------ |
-| `function` |  The function to wrap. See below for passed parameters. |
-| `config` | An optional configuration object.  |
+| Parameter  | Description                                            |
+| :--------- | :----------------------------------------------------- |
+| `function` | The function to wrap. See below for passed parameters. |
+| `config`   | An optional configuration object.                      |
 
 ### Return
 
@@ -116,21 +116,24 @@ Here are the parameters that you can use.
 
 The configuration object has the following options.
 
-| Parameter   | Description                                                  |
-| :---------- | :------------------------------------------------ |
-| `pathToProps` |  A string used for URL pattern matching. For example, if you want the URL `/hello/World` to call your `hello` function and pass "World" as the `name` prop, set `pathToProps` to "hello/:name" |
-| `errorCallback` | A callback function that you can use to format an error.  |
-| `maxAge` | The `max-age` that the client can cache the response. Set to -1 (default) if you don't want the response cached.  |
+| Parameter       | Description                                                                                                                                                                                                |
+| :-------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pathToProps`   | A string used for URL pattern matching. For example, if you want the URL `/.netlify/functions/hello/World` to call your `hello` function and pass "World" as the `name` prop, set `pathToProps` to ":name" |
+| `errorCallback` | A callback function that you can use to format an error.                                                                                                                                                   |
+| `maxAge`        | The `max-age` that the client can cache the response. Set to -1 (default) if you don't want the response cached.                                                                                           |
 
 ## Your function
 
 ### Parameters
 
-Your function will be called with two arguments. The first is a consolidated `props` object. It is built from query parameters, URL pattern matching (i.e. /hello/:name), and POST data, in that order.
+Your function will be called with two arguments. The first is a consolidated `props` object. It is built from query parameters, URL pattern matching (i.e. :name), and POST data, in that order.
+
+> Note: POST data will only be decoded if the `Content-Type` header is `application/json` (for JSON encoded) or `application/x-www-form-urlencoded` (for URL encoded).
 
 The second argument is the original `event` object passed to the `handler`.
 Use this as your "escape hatch" in case your function needs to know more about
-how it was called. For example, you can check for a particular header value.
+how it was called. For example, you can check for a particular header value,
+or get the entire post data even if the `Content-Encoding` wasn't properly set.
 
 ### Throwing
 
