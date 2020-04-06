@@ -53,6 +53,12 @@ const withJSONHandler = (fn, {
     };
     const result = await fn(props, event);
 
+    if (result === undefined) {
+      return {
+        statusCode: 204, // No Content
+      };
+    }
+
     const body = JSON.stringify(result);
     const hash = crypto.createHash('md5').update(body).digest('base64');
     const etag = `"${hash}"`;

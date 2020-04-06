@@ -55,6 +55,12 @@ describe('withJSONHandler', () => {
       const nextResult = await fn(nextEvent);
       expect(nextResult.statusCode).toBe(304);
     });
+    it('resolves with an object containing statusCode of 204 if undefined returned', async () => {
+      const myFn = (props) => undefined;
+      const fn = withJSONHandler(myFn);
+      const result = await fn(event);
+      expect(result.statusCode).toBe(204);
+    });
   });
 
   describe('for a GET with a config the returned function', () => {
