@@ -1,9 +1,24 @@
 import crypto from 'crypto';
 
 const applicationJson = 'application/json';
+const applicationUrl = 'application/x-www-form-urlencoded';
 const contentType = 'content-type';
 
-const defaultErrorCallback = error => ({
+// use this if/when Object.fromEntries is supported in Netlify
+// const decode = (encode) => {
+//   const url = new URL(`http://example.com?${encode}`);
+//   return Object.fromEntries([...url.searchParams.entries()]);
+// };
+
+const decode = (encode) => {
+  const obj = {};
+  const url = new URL(`?${encode}`, 'http://example.com/'); // requires a value base URL
+  [...url.searchParams.entries()].forEach(([key, val]) => {
+    obj[key] = val;
+  });
+  return obj;
+};
+
   statusCode: 500,
   headers: {
     [contentType]: applicationJson,
@@ -40,12 +55,13 @@ const withJSONHandler = (fn, {
   } = event;
 
   try {
-    const bodyProps = httpMethod === 'POST' && headers[contentType] === applicationJson
-      ? JSON.parse(event.body)
-      : {};
-    const pathProps = pathToProps
-      ? mapPathToProps(pathToProps, path)
-      : {};
+    const bodyProps =
+      // eslint-disable-next-line no-nested-ternary
+      httpMethod === 'POST' && headers[contentType] === applicationJson
+        ? JSON.parse(event.body)
+        : headers[contentType] === applicationUrl
+        ? decode(event.body)
+        : {};
     const props = {
       ...queryStringParameters,
       ...pathProps,
