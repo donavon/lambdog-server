@@ -19,6 +19,7 @@ const decode = (encode) => {
   return obj;
 };
 
+const defaultErrorCallback = (error) => ({
   statusCode: 500,
   headers: {
     [contentType]: applicationJson,
@@ -42,17 +43,11 @@ const mapPathToProps = (pathToProps, path) => {
   return result;
 };
 
-const withJSONHandler = (fn, {
-  pathToProps,
-  errorCallback = defaultErrorCallback,
-  maxAge = -1,
-} = {}) => async (event) => {
-  const {
-    httpMethod,
-    headers,
-    queryStringParameters,
-    path,
-  } = event;
+const withJSONHandler = (
+  fn,
+  { pathToProps, errorCallback = defaultErrorCallback, maxAge = -1 } = {}
+) => async (event) => {
+  const { httpMethod, headers = {}, queryStringParameters, path } = event;
 
   try {
     const bodyProps =
@@ -62,6 +57,7 @@ const withJSONHandler = (fn, {
         : headers[contentType] === applicationUrl
         ? decode(event.body)
         : {};
+    const pathProps = pathToProps ? mapPathToProps(pathToProps, path) : {};
     const props = {
       ...queryStringParameters,
       ...pathProps,
@@ -81,21 +77,22 @@ const withJSONHandler = (fn, {
     const ifNoneMatch = headers['if-none-match'];
     const isMatch = ifNoneMatch === etag;
 
-    return isMatch ? {
-      statusCode: 304,
-    } : {
-      statusCode: 200,
-      body,
-      headers: {
-        [contentType]: applicationJson,
-        ...(httpMethod !== 'POST' && maxAge !== -1 && { 'cache-control': `max-age=${maxAge}` }),
-        ...(httpMethod !== 'POST' && { etag }),
-      },
-    };
+    return isMatch
+      ? {
+          statusCode: 304,
+        }
+      : {
+          statusCode: 200,
+          body,
+          headers: {
+            [contentType]: applicationJson,
+            ...(httpMethod !== 'POST' &&
+              maxAge !== -1 && { 'cache-control': `max-age=${maxAge}` }),
+            ...(httpMethod !== 'POST' && { etag }),
+          },
+        };
   } catch (ex) {
-    return ex instanceof Error
-      ? errorCallback(ex)
-      : ex;
+    return ex instanceof Error ? errorCallback(ex) : ex;
   }
 };
 
