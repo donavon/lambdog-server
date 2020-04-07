@@ -43,6 +43,11 @@ describe('withJSONHandler', () => {
       expect(result.headers['content-type']).toBe('application/json');
     });
 
+    it('resolves with an object containing a "x-powered-by" header', async () => {
+      const result = await fn(event);
+      expect(result.headers['x-powered-by']).not.toBe('');
+    });
+
     it('resolves with an object containing statusCode of 304 if etag matches', async () => {
       const result = await fn(event);
       const headers = {
@@ -60,6 +65,11 @@ describe('withJSONHandler', () => {
       const fn = withJSONHandler(myFn);
       const result = await fn(event);
       expect(result.statusCode).toBe(204);
+    });
+
+    it('resolves with an object containing a "x-powered-by" header', async () => {
+      const result = await fn(event);
+      expect(result.headers['x-powered-by']).not.toBe('');
     });
   });
 
@@ -83,6 +93,23 @@ describe('withJSONHandler', () => {
         name: 'donavon',
         name2: 'bar',
       });
+    });
+
+    it('is passed a second argument – an object containing event and context', async () => {
+      const myFn = jest.fn();
+      const fn = withJSONHandler(myFn, {
+        pathToProps: 'x/:name2/:namex',
+        maxAge: 1000,
+      });
+
+      await fn(event, 'context');
+      expect(myFn).toBeCalledWith(
+        {
+          name: 'donavon',
+          name2: 'bar',
+        },
+        { event, context: 'context' }
+      );
     });
 
     it('resolves with an object containing the cache-control header', async () => {
@@ -132,7 +159,7 @@ describe('withJSONHandler', () => {
       );
     });
 
-    it('is passed a combined props object URL encoded', async () => {
+    it('is passed a combined props object FORM URL encoded', async () => {
       const event = {
         httpMethod: 'POST',
         headers: {
@@ -178,19 +205,24 @@ describe('withJSONHandler', () => {
     };
     const fn = withJSONHandler(myFn);
 
-    it('resolves with an object containing statusCode of 500', async () => {
+    it('resolves with an object containing statusCode of 400', async () => {
       const result = await fn(event);
-      expect(result.statusCode).toBe(500);
+      expect(result.statusCode).toBe(400);
     });
 
-    it('resolves with an object containing the content-type header of application/json', async () => {
+    it('resolves with an object containing the content-type header of text/plain', async () => {
       const result = await fn(event);
-      expect(result.headers['content-type']).toBe('application/json');
+      expect(result.headers['content-type']).toBe('text/plain');
     });
 
     it('and a body contining the error message', async () => {
       const result = await fn(event);
       expect(result.body).toBe(JSON.stringify('test'));
+    });
+
+    it('resolves with an object containing a "x-powered-by" header', async () => {
+      const result = await fn(event);
+      expect(result.headers['x-powered-by']).not.toBe('');
     });
   });
 
@@ -207,9 +239,28 @@ describe('withJSONHandler', () => {
     };
     const fn = withJSONHandler(myFn);
 
-    it('resolves with the same object', async () => {
+    it('resolves with the same object, and defaults statusCode and body', async () => {
       const result = await fn(event);
-      expect(result).toEqual({ foo: 'bar' });
+      expect(result.foo).toBe('bar');
+      expect(result.statusCode).toBe(400);
+      expect(result.body).toBe('');
+    });
+
+    it('resolves with the same object, statusCode and body not overridden', async () => {
+      const myFn = () => {
+        // eslint-disable-next-line no-throw-literal
+        throw { statusCode: 1000, body: 'foo' };
+      };
+      const fn = withJSONHandler(myFn);
+
+      const result = await fn(event);
+      expect(result.statusCode).toBe(1000);
+      expect(result.body).toBe('foo');
+    });
+
+    it('resolves with an object containing a "x-powered-by" header', async () => {
+      const result = await fn(event);
+      expect(result.headers['x-powered-by']).not.toBe('');
     });
   });
 });

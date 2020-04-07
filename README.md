@@ -73,9 +73,9 @@ Oh, and there are a few other benefits that you get out of the box—for free.
 
 - If your function is "pure" (i.e. has no side effects), there is an optional setting that allows you to set "max-age" caching.
 
-- Automatic `try`/`catch` to produce 500 server errors.
+- Automatic `try`/`catch` to produce 400 server errors.
 
-- Support for `props` based on query parameters, URL pattern matching (i.e. /.netlify/functions/hello/:name), or POST data.
+- Support for `props` based on query parameters, URL pattern matching (i.e. /.netlify/functions/hello/:name), or POST/PUT data.
 
 ## Installation
 
@@ -130,23 +130,24 @@ Your function will be called with two arguments. The first is a consolidated `pr
 
 > Note: POST data will only be decoded if the `Content-Type` header is `application/json` (for JSON encoded) or `application/x-www-form-urlencoded` (for URL encoded).
 
-The second argument is the original `event` object passed to the `handler`.
+The second argument is a combined object containing the original `event` object passed to the `handler`
+as well as the `context` object used for Netlify Identity (see the [Netlify docs](https://docs.netlify.com/functions/functions-and-identity/) for details).
 Use this as your "escape hatch" in case your function needs to know more about
 how it was called. For example, you can check for a particular header value,
 or get the entire post data even if the `Content-Encoding` wasn't properly set.
 
 ### Throwing
 
-If you throw an error, Lambdog will, by default (unless you set `errorCallback` in config), format a status code of 500
+If you throw an error, Lambdog will, by default (unless you set `errorCallback` in config), format a status code of 400
 with the error message as the body.
 
-If you throw an object, Lambdog will return that object "as-it".
+If you throw an object, Lambdog will return that object "as-is".
 This is your response escape hatch.
 
 ### Return value
 
 Your function can return a value directly, or it can be an `async` function
-what resolves to a value.
+what resolves to a value (i.e. return a Promise).
 
 The results from your function will be JSON stringified and
 placed in the body.
