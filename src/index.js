@@ -7,7 +7,7 @@ const APPLICATION_FORM = 'application/x-www-form-urlencoded';
 const CONTENT_TYPE = 'content-type';
 
 const MARKETING_HEADERS = {
-  'x-powered-by': `@lambdog/server@${version}`,
+  lambdog: version,
 };
 
 const defaultDecoder = () => ({});

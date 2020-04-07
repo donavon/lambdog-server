@@ -43,9 +43,9 @@ describe('withJSONHandler', () => {
       expect(result.headers['content-type']).toBe('application/json');
     });
 
-    it('resolves with an object containing a "x-powered-by" header', async () => {
+    it('resolves with an object containing a "lambdog" header', async () => {
       const result = await fn(event);
-      expect(result.headers['x-powered-by']).not.toBe('');
+      expect(result.headers['lambdog']).not.toBe(undefined);
     });
 
     it('resolves with an object containing statusCode of 304 if etag matches', async () => {
@@ -67,9 +67,9 @@ describe('withJSONHandler', () => {
       expect(result.statusCode).toBe(204);
     });
 
-    it('resolves with an object containing a "x-powered-by" header', async () => {
+    it('resolves with an object containing a "lambdog" header', async () => {
       const result = await fn(event);
-      expect(result.headers['x-powered-by']).not.toBe('');
+      expect(result.headers['lambdog']).not.toBe(undefined);
     });
   });
 
@@ -220,9 +220,9 @@ describe('withJSONHandler', () => {
       expect(result.body).toBe(JSON.stringify('test'));
     });
 
-    it('resolves with an object containing a "x-powered-by" header', async () => {
+    it('resolves with an object containing a "lambdog" header', async () => {
       const result = await fn(event);
-      expect(result.headers['x-powered-by']).not.toBe('');
+      expect(result.headers['lambdog']).not.toBe(undefined);
     });
   });
 
@@ -258,9 +258,9 @@ describe('withJSONHandler', () => {
       expect(result.body).toBe('foo');
     });
 
-    it('resolves with an object containing a "x-powered-by" header', async () => {
+    it('resolves with an object containing a "lambdog" header', async () => {
       const result = await fn(event);
-      expect(result.headers['x-powered-by']).not.toBe('');
+      expect(result.headers['lambdog']).not.toBe(undefined);
     });
   });
 });
