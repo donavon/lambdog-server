@@ -95,20 +95,25 @@ describe('withJSONHandler', () => {
       });
     });
 
-    it('is passed a second argument – an object containing event and context', async () => {
+    it('is passed a second argument – an object containing event, context, and params', async () => {
       const myFn = jest.fn();
       const fn = withJSONHandler(myFn, {
-        pathToProps: 'x/:name2/:namex',
+        pathToProps: 'x/:name/:namex',
         maxAge: 1000,
       });
 
       await fn(event, 'context');
       expect(myFn).toBeCalledWith(
         {
-          name: 'donavon',
-          name2: 'bar',
+          name: 'bar',
         },
-        { event, context: 'context' }
+        expect.objectContaining({
+          event,
+          context: 'context',
+          params: { name: 'bar' },
+          body: '',
+          query: { name: 'donavon' },
+        })
       );
     });
 
@@ -142,8 +147,8 @@ describe('withJSONHandler', () => {
         'content-type': 'application/json',
       },
       queryStringParameters: { name: 'donavon' },
-      path: '/.netlify/functions/function-name/bar',
-      body: JSON.stringify({ name3: 'Jill' }),
+      path: '/.netlify/functions/function-name/x/bar',
+      body: JSON.stringify({ name: 'body', name3: 'Jill' }),
     };
 
     const myFn = (props) => props;
@@ -154,9 +159,11 @@ describe('withJSONHandler', () => {
 
     it('is passed a combined props object when JSON encoded', async () => {
       const result = await fn(event);
-      expect(result.body).toBe(
-        JSON.stringify({ name: 'donavon', name2: 'bar', name3: 'Jill' })
-      );
+      expect(JSON.parse(result.body)).toEqual({
+        name: 'donavon',
+        name2: 'x',
+        name3: 'Jill',
+      });
     });
 
     it('is passed a combined props object FORM URL encoded', async () => {
@@ -177,23 +184,86 @@ describe('withJSONHandler', () => {
       });
 
       const result = await fn(event);
-      expect(result.body).toBe(
-        JSON.stringify({
-          name: 'donavon',
-          name2: 'bar',
-          name3: 'Jill',
-          name4: 'Bob Smith',
-        })
-      );
+      expect(JSON.parse(result.body)).toEqual({
+        name: 'donavon',
+        name2: 'bar',
+        name3: 'Jill',
+        name4: 'Bob Smith',
+      });
+    });
+
+    it('order of precidence is path, query, body', async () => {
+      const event = {
+        httpMethod: 'POST',
+        headers: {
+          'content-type': 'application/json',
+        },
+        queryStringParameters: { name: 'query' },
+        path: '/.netlify/functions/function-name/path',
+        body: '{"name":"body"}',
+      };
+
+      const myFn = (props) => props;
+      const fn = withJSONHandler(myFn, {
+        pathToProps: ':name',
+      });
+
+      const result = await fn(event);
+      expect(JSON.parse(result.body)).toEqual({
+        name: 'path',
+      });
+
+      const fn2 = withJSONHandler(myFn);
+
+      const result2 = await fn2(event);
+      expect(JSON.parse(result2.body)).toEqual({
+        name: 'query',
+      });
     });
 
     it('resolves with an object containing the cache-control header', async () => {
       const result = await fn(event);
       expect(result.headers['cache-control']).toBe(undefined);
     });
+
+    it('is passed a second argument – an object containing event, context, and params', async () => {
+      const myFn = jest.fn();
+      const fn = withJSONHandler(myFn, {
+        pathToProps: 'x/:name/:namex',
+        maxAge: 1000,
+      });
+
+      await fn(event, 'context');
+      expect(myFn).toBeCalledWith(
+        {
+          name: 'bar',
+          name3: 'Jill',
+        },
+        expect.objectContaining({
+          event,
+          context: 'context',
+          params: { name: 'bar' },
+          body: { name: 'body', name3: 'Jill' },
+          query: { name: 'donavon' },
+        })
+      );
+    });
   });
 
   describe('when a function throws an Error', () => {
+    // from https://stackoverflow.com/questions/48033841/test-process-env-with-jest
+    const OLD_ENV = process.env;
+
+    beforeEach(() => {
+      jest.resetModules(); // this is important - it clears the cache
+      process.env = { ...OLD_ENV };
+      delete process.env.NODE_ENV;
+    });
+
+    afterEach(() => {
+      process.env = OLD_ENV;
+    });
+
     const event = {
       httpMethod: 'GET',
       queryStringParameters: { name: 'donavon' },
@@ -215,9 +285,16 @@ describe('withJSONHandler', () => {
       expect(result.headers['content-type']).toBe('text/plain');
     });
 
-    it('and a body contining the error message', async () => {
+    it('and a body contining the error stack (if not in prod)', async () => {
+      process.env.NODE_ENV = 'development';
       const result = await fn(event);
-      expect(result.body).toBe(JSON.stringify('test'));
+      expect(result.body.startsWith('Error: test')).toBe(true);
+    });
+
+    it('and a body contining the error stack (if in prod)', async () => {
+      process.env.NODE_ENV = 'production';
+      const result = await fn(event);
+      expect(result.body).toBe('test');
     });
 
     it('resolves with an object containing a "lambdog" header', async () => {

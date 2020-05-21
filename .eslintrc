@@ -6,6 +6,9 @@
     "indent": 0,
     "object-curly-newline": "off",
     "operator-linebreak": 0,
-    "comma-dangle": 0
+    "comma-dangle": 0,
+    "no-plusplus": "off",
+    "no-param-reassign": "off",
+    "no-throw-literal": "off"
   }
 }

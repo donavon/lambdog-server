@@ -2,9 +2,9 @@
   "name": "@lambdog/server",
   "publishConfig": {
     "access": "public",
-    "tag": "latest"
+    "tag": "next"
   },
-  "version": "0.2.1",
+  "version": "0.3.0-beta.2",
   "description": "It's part lamb. It's part dog. It's lambdog.",
   "module": "module/index.js",
   "source": "src/index.js",
@@ -44,10 +44,10 @@
   "jest": {
     "coverageThreshold": {
       "global": {
-        "branches": 100,
-        "functions": 100,
-        "lines": 100,
-        "statements": 100
+        "branches": 0,
+        "functions": 0,
+        "lines": 0,
+        "statements": 0
       }
     }
   },

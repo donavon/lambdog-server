@@ -11,6 +11,8 @@
 Ok, so what IS Lambdog? Lambdog is a set of packages (one for the client, and one for the server)
 that makes it easy to call and write Lambda functions for AWS. You can use either one independently, or use them together.
 
+> ⚡️ New in v0.3.0... ROUTES! ⚡️
+
 ## @lambdog/server
 
 @lambdog/server consists of a higher order function that
@@ -103,10 +105,10 @@ export const handler = withJSONHandler(function, config);
 
 Here are the parameters that you can use.
 
-| Parameter  | Description                                            |
-| :--------- | :----------------------------------------------------- |
-| `function` | The function to wrap. See below for passed parameters. |
-| `config`   | An optional configuration object.                      |
+| Parameter                    | Description                                            |
+| :--------------------------- | :----------------------------------------------------- |
+| `function` or `routes` table | The function to wrap. See below for passed parameters. |
+| `config`                     | An optional configuration object.                      |
 
 ### Return
 
@@ -116,25 +118,49 @@ Here are the parameters that you can use.
 
 The configuration object has the following options.
 
-| Parameter       | Description                                                                                                                                                                                                |
-| :-------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pathToProps`   | A string used for URL pattern matching. For example, if you want the URL `/.netlify/functions/hello/World` to call your `hello` function and pass "World" as the `name` prop, set `pathToProps` to ":name" |
-| `errorCallback` | A callback function that you can use to format an error.                                                                                                                                                   |
-| `maxAge`        | The `max-age` that the client can cache the response. Set to -1 (default) if you don't want the response cached.                                                                                           |
+| Parameter       | Description                                                                                                                                                                                                                                            |
+| :-------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pathToProps`   | A string used for URL pattern matching. For example, if you want the URL `/.netlify/functions/hello/World` to call your `hello` function and pass "World" as the `name` prop, set `pathToProps` to ":name". This value ignored if using a route table. |
+| `errorCallback` | A callback function that you can use to format an error.                                                                                                                                                                                               |
+| `maxAge`        | The `max-age` that the client can cache the response. Set to -1 (default) if you don't want the response cached.                                                                                                                                       |
 
 ## Your function
 
 ### Parameters
 
-Your function will be called with two arguments. The first is a consolidated `props` object. It is built from query parameters, URL pattern matching (i.e. :name), and POST data, in that order.
+Your function will be called with two arguments. The first is a consolidated `props` object. It is built from POST data, URL pattern matching (i.e. :name), and query parameters, in that order.
 
 > Note: POST data will only be decoded if the `Content-Type` header is `application/json` (for JSON encoded) or `application/x-www-form-urlencoded` (for URL encoded).
 
-The second argument is a combined object containing the original `event` object passed to the `handler`
-as well as the `context` object used for Netlify Identity (see the [Netlify docs](https://docs.netlify.com/functions/functions-and-identity/) for details).
-Use this as your "escape hatch" in case your function needs to know more about
+The second argument is your "escape hatch" in case your function needs to know more about
 how it was called. For example, you can check for a particular header value,
 or get the entire post data even if the `Content-Encoding` wasn't properly set.
+
+It contains the following fields.
+
+#### `event`
+
+The original `event` object passed to the `handler`.
+
+#### `context`
+
+The `context` object used for Netlify Identity (see the [Netlify docs](https://docs.netlify.com/functions/functions-and-identity/) for details).
+
+#### `query`
+
+A key/value pair containing query parmeters. For example, if the query string on the URL were `?foo=bar`, then `query` would contain the object `{ foo: 'bar' }`.
+
+#### `body`
+
+A decoded representation on the HTTP body. For example, this will be an object if `Content-Type` is `application/json`.
+
+#### `params`
+
+Parameters from URL derived from the route or from `pathToProps`.
+
+#### `route`
+
+The matching route.
 
 ### Throwing
 
@@ -144,6 +170,72 @@ with the error message as the body.
 If you throw an object, Lambdog will return that object "as-is".
 This is your response escape hatch.
 
+### Routes
+
+If the first parameter to `withJSONHandler` is not a function, then it will be considered a route table. A route table is an array of routes.
+
+Lambdog will return with the first matching route, so place you most specific routes first and get more general as you go.
+
+A route has the following properties.
+
+#### `method`
+
+The HTTP method to match. If unspecified, the route will patch all methods.
+
+#### `path`
+
+A path segment used to match against the URL. A value starting with a `:` (colon) will interpret the current path segment as a parameter (i.e. will be added to the `params` object).
+
+If `path` is `*` (i.e. an asterisk) it will match all segments and any remaining segments.
+
+If `path` is `.` (i.e. an period) it will match the current segment only.
+
+#### `handler`
+
+If the route mathes, this handler will be called.
+
+#### `children`
+
+An array of child routes.
+
+### Sample routes table
+
+Here is an example of a typical CRUD routes table.
+
+```js
+[
+  {
+    method: 'get',
+    path: 'orders',
+    handler: getAllOrders,
+  },
+  {
+    method: 'post',
+    path: 'orders',
+    handler: createOrder,
+  },
+  {
+    path: 'orders',
+    children: [
+      { method: 'get', path: ':orderId', handler: getOrder },
+      { method: 'put', path: ':orderId', handler: updateOrder },
+      { method: 'delete', path: ':orderId', handler: deleteOrder },
+    ],
+  },
+  { path: '*', handler: notFound },
+];
+```
+
+Given the route above, a URL of `/orders/123` will call `getOrder` passing a `params` of `{ orderId: '123' }`.
+
+A `get` from `/orders` would call `getAllOrders` with `params` of `{}`.
+
+A `post` to `/orders` would call `createOrder`.
+
+A `put` to `/orders/123` would call `updateOrder`.
+
+Becasue the last route does not specify a method, and has a path of `*`, any non-matching URL, with any method, will result in calling `notFound`. This is your "catch-all" handler. If you do not specify a catch-all handler, Lambdog will return a `404 Not Found`.
+
 ### Return value
 
 Your function can return a value directly, or it can be an `async` function
@@ -152,6 +244,8 @@ what resolves to a value (i.e. return a Promise).
 The results from your function will be JSON stringified and
 placed in the body.
 An `etag` hash of the body will also be included in the header.
+
+A `status` of 200 will be used, unless your function returns `undefined`, in which case a 204 will be used.
 
 Lambdog will also set the content type to `application/json`.
 

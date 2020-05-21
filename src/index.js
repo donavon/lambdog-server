@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { version } from '../package.json';
+import { findRoute } from './findRoute';
 
 const TEXT_PLAIN = 'text/plain';
 const APPLICATION_JSON = 'application/json';
@@ -10,7 +11,7 @@ const MARKETING_HEADERS = {
   lambdog: version,
 };
 
-const defaultDecoder = () => ({});
+const defaultDecoder = (body) => body;
 
 // use this if/when Object.fromEntries is supported in Netlify
 // const decode = (encode) => {
@@ -34,7 +35,7 @@ const defaultErrorCallback = (error) => ({
     ...MARKETING_HEADERS,
     [CONTENT_TYPE]: TEXT_PLAIN,
   },
-  body: JSON.stringify(error.message),
+  body: process.env.NODE_ENV === 'production' ? error.message : error.stack,
 });
 
 const mapPathToProps = (pathToProps, path) => {
@@ -60,25 +61,84 @@ const mapContentTypeToDecoder = {
   [APPLICATION_FORM]: decodeForm,
 };
 
+const stripPrefix = (pathPrefix, path) => {
+  if (pathPrefix instanceof RegExp) {
+    const parts = pathPrefix.exec();
+    if (path) {
+      return parts[1];
+    }
+  }
+  if (typeof pathPrefix === 'string' && path.startsWith(pathPrefix)) {
+    return path.substr(pathPrefix.length);
+  }
+  if (typeof pathPrefix === 'function') {
+    return pathPrefix(path);
+  }
+  throw {
+    statusCode: 500,
+    body: 'invalid config.pathPrefix',
+  };
+};
+
 const withJSONHandler = (
-  fn,
-  { pathToProps, errorCallback = defaultErrorCallback, maxAge = -1 } = {}
+  routes,
+  {
+    pathToProps,
+    pathPrefix = /\/\.netlify\/functions\/?.*?\/(.*)/,
+    errorCallback = defaultErrorCallback,
+    maxAge = -1,
+  } = {}
 ) => async (event, context) => {
   const { httpMethod, headers = {}, queryStringParameters, path, body } = event;
-
   const contentType = headers[CONTENT_TYPE];
 
-  try {
-    const bodyProps = (mapContentTypeToDecoder[contentType] || defaultDecoder)(
-      body
+  const getFn = () => {
+    if (typeof routes === 'function') {
+      const params = pathToProps ? mapPathToProps(pathToProps, path) : {};
+      return {
+        handler: routes,
+        params,
+      };
+    }
+
+    const pathSegments = stripPrefix(pathPrefix, path).split('/').slice(1);
+    const routeInfo = findRoute(
+      httpMethod.toLowerCase(),
+      pathSegments,
+      routes,
+      {}
     );
-    const pathProps = pathToProps ? mapPathToProps(pathToProps, path) : {};
-    const props = {
-      ...queryStringParameters,
-      ...pathProps,
-      ...bodyProps,
+    if (routeInfo) {
+      return routeInfo;
+    }
+    throw {
+      statusCode: 405,
+      'content-type': 'text/plain',
+      body: 'method not allowed on this resource or route not found',
     };
-    const result = await fn(props, { event, context });
+  };
+
+  try {
+    const bodyProps = body
+      ? (mapContentTypeToDecoder[contentType] || defaultDecoder)(body)
+      : '';
+
+    const { handler, route, params } = getFn();
+
+    const props = {
+      ...bodyProps,
+      ...queryStringParameters,
+      ...params, // path props MUST come last so that PUT/PATCH favor /resource/:id
+    };
+
+    const result = await handler(props, {
+      event,
+      context,
+      route,
+      params,
+      body: bodyProps,
+      query: queryStringParameters,
+    });
 
     // Note: although it shouldn't be necessary, Netlify Dev returns a 500 status is
     // the body is not a string, so return an empty string for body
@@ -119,9 +179,21 @@ const withJSONHandler = (
           },
         };
   } catch (ex) {
+    const { headers: exHeaders, ...exRest } = ex;
     return ex instanceof Error
       ? errorCallback(ex)
-      : { ...{ statusCode: 400, body: '', headers: MARKETING_HEADERS }, ...ex };
+      : {
+          ...{
+            statusCode: 400,
+            body: '',
+            headers: {
+              ...MARKETING_HEADERS,
+              [CONTENT_TYPE]: TEXT_PLAIN,
+              ...exHeaders,
+            },
+          },
+          ...exRest,
+        };
   }
 };
 
