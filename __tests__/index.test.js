@@ -1,4 +1,86 @@
-import { withJSONHandler } from '../src';
+import { withJSONHandler, withHandler } from '../src';
+
+describe('withHandler', () => {
+  it('returns a function', () => {
+    const spy = jest.fn();
+    const fn = withHandler(spy, {});
+    expect(typeof fn).toBe('function');
+  });
+
+  describe('for a GET the returned function', () => {
+    const event = {
+      httpMethod: 'GET',
+      headers: {},
+      queryStringParameters: { name: 'donavon' },
+      path: '/foo',
+    };
+
+    const myFn = (props) => ({
+      body: props.name,
+    });
+    const fn = withHandler(myFn);
+
+    it('when called returns a Promise', async () => {
+      const result = fn(event);
+      expect(result instanceof Promise).toBe(true);
+    });
+
+    it('resolves with an object containing body', async () => {
+      const result = await fn(event);
+      expect(result.body).toEqual(event.queryStringParameters.name);
+    });
+
+    it('resolves with an object containing statusCode of 200', async () => {
+      const result = await fn(event);
+      expect(result.statusCode).toBe(200);
+    });
+
+    it('resolves with an object containing the etag header', async () => {
+      const result = await fn(event);
+      expect(!!result.headers.etag).toBe(true);
+    });
+
+    it('resolves with an object containing the content-type header of application/json', async () => {
+      const result = await fn(event);
+      expect(result.headers['content-type']).toBe('text/plain');
+    });
+
+    it('resolves with an object containing a "lambdog" header', async () => {
+      const result = await fn(event);
+      expect(result.headers['lambdog']).not.toBe(undefined);
+    });
+
+    it('resolves with an object containing statusCode of 304 if etag matches', async () => {
+      const result = await fn(event);
+      const headers = {
+        'if-none-match': result.headers.etag,
+      };
+      const nextEvent = {
+        ...event,
+        headers,
+      };
+      const nextResult = await fn(nextEvent);
+      expect(nextResult.statusCode).toBe(304);
+    });
+    it('resolves with an object containing statusCode of 204 if body=undefined returned', async () => {
+      const myFn = (props) => ({ body: undefined });
+      const fn = withHandler(myFn);
+      const result = await fn(event);
+      expect(result.statusCode).toBe(204);
+    });
+    it('resolves with an object containing statusCode of 204 if undefined returned', async () => {
+      const myFn = (props) => undefined;
+      const fn = withHandler(myFn);
+      const result = await fn(event);
+      expect(result.statusCode).toBe(204);
+    });
+
+    it('resolves with an object containing a "lambdog" header', async () => {
+      const result = await fn(event);
+      expect(result.headers['lambdog']).not.toBe(undefined);
+    });
+  });
+});
 
 describe('withJSONHandler', () => {
   it('returns a function', () => {

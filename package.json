@@ -4,7 +4,7 @@
     "access": "public",
     "tag": "next"
   },
-  "version": "0.3.0-beta.2",
+  "version": "0.3.0-beta.3",
   "description": "It's part lamb. It's part dog. It's lambdog.",
   "module": "module/index.js",
   "source": "src/index.js",

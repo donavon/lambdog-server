@@ -9,6 +9,7 @@
     "comma-dangle": 0,
     "no-plusplus": "off",
     "no-param-reassign": "off",
-    "no-throw-literal": "off"
+    "no-throw-literal": "off",
+    "implicit-arrow-linebreak": "off"
   }
 }

@@ -13,20 +13,9 @@ const MARKETING_HEADERS = {
 
 const defaultDecoder = (body) => body;
 
-// use this if/when Object.fromEntries is supported in Netlify
-// const decode = (encode) => {
-//   const url = new URL(`http://example.com?${encode}`);
-//   return Object.fromEntries([...url.searchParams.entries()]);
-// };
-
 const decodeForm = (encode) => {
-  const obj = {};
-  const url = new URL(`?${encode}`, 'http://example.com/'); // requires a value base URL
-
-  [...url.searchParams.entries()].forEach(([key, val]) => {
-    obj[key] = val;
-  });
-  return obj;
+  const url = new URL(`http://example.com?${encode}`);
+  return Object.fromEntries([...url.searchParams.entries()]);
 };
 
 const defaultErrorCallback = (error) => ({
@@ -61,6 +50,7 @@ const mapContentTypeToDecoder = {
   [APPLICATION_FORM]: decodeForm,
 };
 
+// TODO re-think this
 const stripPrefix = (pathPrefix, path) => {
   if (pathPrefix instanceof RegExp) {
     const parts = pathPrefix.exec();
@@ -80,18 +70,21 @@ const stripPrefix = (pathPrefix, path) => {
   };
 };
 
-const withJSONHandler = (
+export const withHandler = (
   routes,
   {
     pathToProps,
     pathPrefix = /\/\.netlify\/functions\/?.*?\/(.*)/,
     errorCallback = defaultErrorCallback,
     maxAge = -1,
+    contentEncoder = (c) => c || {},
+    contentType: responseContentType = 'text/plain',
   } = {}
 ) => async (event, context) => {
   const { httpMethod, headers = {}, queryStringParameters, path, body } = event;
   const contentType = headers[CONTENT_TYPE];
 
+  // TODO name things much?
   const getFn = () => {
     if (typeof routes === 'function') {
       const params = pathToProps ? mapPathToProps(pathToProps, path) : {};
@@ -131,7 +124,7 @@ const withJSONHandler = (
       ...params, // path props MUST come last so that PUT/PATCH favor /resource/:id
     };
 
-    const result = await handler(props, {
+    const resultMaybe = await handler(props, {
       event,
       context,
       route,
@@ -140,18 +133,23 @@ const withJSONHandler = (
       query: queryStringParameters,
     });
 
+    const {
+      statusCode: responseStatusCode = 200,
+      body: encodedBody,
+      headers: responseHeaders = {},
+    } = contentEncoder(resultMaybe);
+
     // Note: although it shouldn't be necessary, Netlify Dev returns a 500 status is
     // the body is not a string, so return an empty string for body
     // https://github.com/netlify/netlify-dev-plugin/pull/124/files#diff-cf2bd94d7688f0711bbd931e6c5e0397R43
-    if (result === undefined) {
+    if (encodedBody === undefined) {
       return {
         statusCode: 204, // No Content
         body: '',
-        headers: MARKETING_HEADERS,
+        headers: { ...MARKETING_HEADERS, ...responseHeaders },
       };
     }
 
-    const encodedBody = JSON.stringify(result);
     const hash = crypto.createHash('md5').update(encodedBody).digest('base64');
     const etag = `"${hash}"`;
     const ifNoneMatch = headers['if-none-match'];
@@ -161,14 +159,15 @@ const withJSONHandler = (
       ? {
           statusCode: 304,
           body: '',
-          headers: MARKETING_HEADERS,
+          headers: { ...MARKETING_HEADERS, ...responseHeaders },
         }
       : {
-          statusCode: 200,
+          statusCode: responseStatusCode,
           body: encodedBody,
           headers: {
             ...MARKETING_HEADERS,
-            [CONTENT_TYPE]: APPLICATION_JSON,
+            [CONTENT_TYPE]: responseContentType,
+            ...responseHeaders, // below so handler can override content-type
             ...(httpMethod !== 'POST' &&
               maxAge !== -1 && {
                 'cache-control': `max-age=${maxAge}`,
@@ -197,4 +196,12 @@ const withJSONHandler = (
   }
 };
 
-export { withJSONHandler };
+export const withJSONHandler = (routes, config = {}) =>
+  withHandler(routes, {
+    ...config,
+    contentEncoder: (body) => ({
+      body: body && JSON.stringify(body),
+      headers: {},
+    }),
+    contentType: APPLICATION_JSON,
+  });
