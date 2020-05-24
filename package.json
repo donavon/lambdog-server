@@ -4,7 +4,7 @@
     "access": "public",
     "tag": "next"
   },
-  "version": "0.3.0-beta.4",
+  "version": "0.3.0-beta.5",
   "description": "It's part lamb. It's part dog. It's lambdog.",
   "main": "dist/lambdog-server.js",
   "module": "dist/lambdog-server.module.js",
@@ -36,12 +36,14 @@
     "@babel/cli": "^7.8.4",
     "@babel/core": "^7.9.0",
     "@babel/preset-env": "^7.9.0",
+    "@types/aws-lambda": "^8.10.51",
     "babel-jest": "^25.2.6",
     "eslint": "^6.8.0",
     "eslint-config-airbnb-base": "^14.1.0",
     "eslint-plugin-import": "^2.20.2",
     "eslint-plugin-jest": "^23.13.1",
     "jest": "^25.2.7",
+    "microbundle": "^0.12.0",
     "rimraf": "^3.0.2"
   },
   "jest": {
@@ -53,9 +55,5 @@
         "statements": 0
       }
     }
-  },
-  "dependencies": {
-    "@types/aws-lambda": "^8.10.51",
-    "microbundle": "^0.12.0"
   }
 }
