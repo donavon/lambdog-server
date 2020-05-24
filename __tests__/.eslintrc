@@ -1,5 +1,11 @@
 {
-  "extends": "amex/test",
+  "plugins": ["jest"],
   "rules": {
-  } 
+    "dot-notation": "off",
+    "no-unused-vars": "off",
+    "no-shadow": "off"
+  },
+  "env": {
+    "jest": true
+  }
 }
