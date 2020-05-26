@@ -134,17 +134,18 @@ export const withHandler = (
     });
 
     const {
-      statusCode: responseStatusCode = 200,
       body: encodedBody,
+      // if returned status, use that
+      // else default to either 200 (if body) or 204
+      statusCode: responseStatusCode = encodedBody ? 200 : 204,
       headers: responseHeaders = {},
     } = contentEncoder(resultMaybe);
 
-    // Note: although it shouldn't be necessary, Netlify Dev returns a 500 status is
-    // the body is not a string, so return an empty string for body
-    // https://github.com/netlify/netlify-dev-plugin/pull/124/files#diff-cf2bd94d7688f0711bbd931e6c5e0397R43
+    // don't 204 if handler returned a status.
+    // ex: could have returned a 301 with a lcoation header and no body
     if (encodedBody === undefined) {
       return {
-        statusCode: 204, // No Content
+        statusCode: responseStatusCode, // No Content or returned value (301?)
         body: '',
         headers: { ...MARKETING_HEADERS, ...responseHeaders },
       };
