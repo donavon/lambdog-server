@@ -139,6 +139,7 @@ export const withHandler = (
       // else default to either 200 (if body) or 204
       statusCode: responseStatusCode = encodedBody ? 200 : 204,
       headers: responseHeaders = {},
+      isBase64Encoded = false,
     } = contentEncoder(resultMaybe);
 
     // don't 204 if handler returned a status.
@@ -165,6 +166,7 @@ export const withHandler = (
       : {
           statusCode: responseStatusCode,
           body: encodedBody,
+          isBase64Encoded,
           headers: {
             ...MARKETING_HEADERS,
             [CONTENT_TYPE]: responseContentType,
