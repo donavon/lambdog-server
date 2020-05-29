@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { version } from '../package.json';
 import { findRoute } from './findRoute';
+import { applyMiddleware } from './applyMiddleware';
 
 const TEXT_PLAIN = 'text/plain';
 const APPLICATION_JSON = 'application/json';
@@ -19,7 +20,7 @@ const decodeForm = (encode) => {
 };
 
 const defaultErrorCallback = (error) => ({
-  statusCode: 400,
+  statusCode: error.statusCode || error.status || 400,
   headers: {
     ...MARKETING_HEADERS,
     [CONTENT_TYPE]: TEXT_PLAIN,
@@ -124,14 +125,22 @@ export const withHandler = (
       ...params, // path props MUST come last so that PUT/PATCH favor /resource/:id
     };
 
-    const resultMaybe = await handler(props, {
+    const args = {
       event,
       context,
       route,
       params,
       body: bodyProps,
       query: queryStringParameters,
-    });
+    };
+
+    // Note that args may be mutated by middleware
+    const { middleware } = route || {};
+    if (middleware) {
+      await applyMiddleware(middleware, args);
+    }
+
+    const resultMaybe = await handler(props, args);
 
     const {
       body: encodedBody,

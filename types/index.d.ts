@@ -1,4 +1,9 @@
-import { APIGatewayProxyEvent } from 'aws-lambda';
+import {
+  APIGatewayProxyEvent,
+  APIGatewayEventRequestContext,
+  APIGatewayEvent,
+  APIGatewayProxyCallback,
+} from 'aws-lambda';
 
 export type Method =
   | 'get'
@@ -12,7 +17,9 @@ export type Method =
   | 'put'
   | 'PUT'
   | 'patch'
-  | 'PATCH';
+  | 'PATCH'
+  | 'options'
+  | 'OPTIONS';
 
 interface PathPrefixHandler {
   (path: string): string;
@@ -54,6 +61,8 @@ type LambdogResponse = {
 // };
 
 type Event = APIGatewayProxyEvent;
+type Context = APIGatewayEventRequestContext;
+type Callback = APIGatewayProxyCallback;
 
 export type LambdogArgs = {
   event: Event;
@@ -70,6 +79,7 @@ interface LambdogHandler {
 export type LambdogRoute = {
   method?: Method;
   path: string;
+  middleware?: any[];
   handler?: LambdogHandler;
   children?: LambdogRoute[];
 };
@@ -77,19 +87,35 @@ export type LambdogRoute = {
 export function withJSONHandler(
   handler: LambdogHandler,
   config?: LambdogServerConfig
-): (event: Event) => Promise<LambdogResponse>;
+): (
+  event: Event,
+  context: Context,
+  callback: Callback
+) => Promise<LambdogResponse>;
 
 export function withJSONHandler(
   routes: LambdogRoute[],
   config?: LambdogServerConfig
-): (event: Event) => Promise<LambdogResponse>;
+): (
+  event: Event,
+  context: Context,
+  callback: Callback
+) => Promise<LambdogResponse>;
 
 export function withHandler(
   handler: LambdogHandler,
   config?: LambdogServerConfig
-): (event: Event) => Promise<LambdogResponse>;
+): (
+  event: Event,
+  context: Context,
+  callback: Callback
+) => Promise<LambdogResponse>;
 
 export function withHandler(
   routes: LambdogRoute[],
   config?: LambdogServerConfig
-): (event: Event) => Promise<LambdogResponse>;
+): (
+  event: Event,
+  context: Context,
+  callback: Callback
+) => Promise<LambdogResponse>;

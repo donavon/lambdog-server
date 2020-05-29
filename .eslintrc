@@ -10,6 +10,8 @@
     "no-plusplus": "off",
     "no-param-reassign": "off",
     "no-throw-literal": "off",
-    "implicit-arrow-linebreak": "off"
+    "implicit-arrow-linebreak": "off",
+    "prefer-promise-reject-errors": "off",
+    "no-await-in-loop": "off"
   }
 }
