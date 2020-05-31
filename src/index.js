@@ -82,6 +82,8 @@ export const withHandler = (
     contentType: responseContentType = 'text/plain',
   } = {}
 ) => async (event, context) => {
+  context.callbackWaitsForEmptyEventLoop = false; // TODO document this as the default
+
   const { httpMethod, headers = {}, queryStringParameters, path, body } = event;
   const contentType = headers[CONTENT_TYPE];
 
