@@ -81,7 +81,7 @@ export const withHandler = (
     contentEncoder = (c) => c || {},
     contentType: responseContentType = 'text/plain',
   } = {}
-) => async (event, context) => {
+) => async (event, context = {}) => {
   context.callbackWaitsForEmptyEventLoop = false; // TODO document this as the default
 
   const { httpMethod, headers = {}, queryStringParameters, path, body } = event;
