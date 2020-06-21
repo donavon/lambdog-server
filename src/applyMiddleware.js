@@ -10,6 +10,7 @@ export const applyMiddleware = async (_middleware, args) => {
   const req = {
     method: args.event.httpMethod,
     headers: args.event.headers,
+    args,
   };
   const res = undefined; // TODO emulate status and append mostly
 
