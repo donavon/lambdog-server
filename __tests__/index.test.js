@@ -184,14 +184,17 @@ describe('withJSONHandler', () => {
         maxAge: 1000,
       });
 
-      await fn(event, 'context');
+      await fn(event, { context: 'context' });
       expect(myFn).toBeCalledWith(
         {
           name: 'bar',
         },
         expect.objectContaining({
           event,
-          context: 'context',
+          context: {
+            callbackWaitsForEmptyEventLoop: false,
+            context: 'context',
+          },
           params: { name: 'bar' },
           body: '',
           query: { name: 'donavon' },
@@ -315,7 +318,7 @@ describe('withJSONHandler', () => {
         maxAge: 1000,
       });
 
-      await fn(event, 'context');
+      await fn(event, { context: 'context' });
       expect(myFn).toBeCalledWith(
         {
           name: 'bar',
@@ -323,7 +326,10 @@ describe('withJSONHandler', () => {
         },
         expect.objectContaining({
           event,
-          context: 'context',
+          context: {
+            callbackWaitsForEmptyEventLoop: false,
+            context: 'context',
+          },
           params: { name: 'bar' },
           body: { name: 'body', name3: 'Jill' },
           query: { name: 'donavon' },
